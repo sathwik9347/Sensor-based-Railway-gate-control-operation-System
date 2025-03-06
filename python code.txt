@@ -1,0 +1,42 @@
+import serial
+import time
+
+# Set up serial communication (Update 'COM3' to your Arduino's port)
+arduino = serial.Serial('COM3', 9600)  # For Windows
+# arduino = serial.Serial('/dev/ttyUSB0', 9600)  # For Linux/macOS
+time.sleep(2)  # Allow Arduino to initialize
+
+# Detection range in cm (same as Arduino)
+DETECTION_RANGE = 10  
+
+def read_sensor_data():
+    """Reads distance data from Arduino"""
+    try:
+        arduino.write(b"READ\n")  # Send command to read sensor data
+        data = arduino.readline().decode().strip()  # Read response
+        distances = data.split(",")  # Example: "15,20"
+        if len(distances) == 2 and distances[0].isdigit() and distances[1].isdigit():
+            return int(distances[0]), int(distances[1])  # Distance1, Distance2
+    except:
+        return None, None
+
+def control_gate():
+    """Controls the railway gate based on sensor readings"""
+    while True:
+        distance1, distance2 = read_sensor_data()
+        
+        if distance1 is not None and distance2 is not None:
+            print(f"Distance 1: {distance1} cm | Distance 2: {distance2} cm")
+
+            if distance1 <= DETECTION_RANGE or distance2 <= DETECTION_RANGE:
+                print("Train Detected! Closing Gates...")
+                arduino.write(b"CLOSE\n")  # Send command to close the gate
+            else:
+                print("No Train Detected. Opening Gates...")
+                arduino.write(b"OPEN\n")  # Send command to open the gate
+        
+        time.sleep(1)  # Delay to avoid continuous polling
+
+if __name__ == "__main__":
+    print("Automatic Railway Gate System Started...")
+    control_gate()
